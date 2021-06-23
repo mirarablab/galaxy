@@ -1,0 +1,91 @@
+    server {
+        server_name toranj.ucsd.edu wlogdate.com tera-trees.com;
+
+        # use a variable for convenience
+        set $galaxy_root /home/smirarab/galaxy/;
+
+        # Enable HSTS
+        add_header Strict-Transport-Security "max-age=15552000; includeSubdomains";
+
+        # proxy all requests not matching other locations to uWSGI
+        location /galaxy {
+            uwsgi_pass unix:///home/smirarab/galaxy/var/uwsgi.sock;
+            uwsgi_param UWSGI_SCHEME $scheme;
+            include uwsgi_params;
+        }
+
+        # serve framework static content
+        location /galaxy/static {
+            alias $galaxy_root/static;
+            expires 24h;
+        }
+        location /galaxy/robots.txt {
+            alias $galaxy_root/static/robots.txt;
+            expires 24h;
+        }
+        location /galaxy/favicon.ico {
+            alias $galaxy_root/static/favicon.ico;
+            expires 24h;
+        }
+	location = / {
+	  return 301 /galaxy/;
+	}
+
+	location ~ ^/~(.+?)(/.*)?$ {
+         alias /home/$1/public_html$2;
+         index index.html index.htm;
+         autoindex on;
+        }
+
+	location ~ ^/data(/.*)?$ {
+         alias /home/smirarab/public_html/data/$1;
+         index index.html index.htm;
+         autoindex on;
+        }
+
+        # serve visualization and interactive environment plugin static content
+        location ~ ^/galaxy/plugins/(?<plug_type>.+?)/(?<vis_name>.+?)/static/(?<static_file>.*?)$ {
+            alias $galaxy_root/config/plugins/$plug_type/$vis_name/static/$static_file;
+            expires 24;
+        }
+
+	location = /galaxy {
+    		rewrite ^ /galaxy/ permanent;
+	}
+
+    listen [::]:443 ssl ipv6only=on; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/toranj.ucsd.edu-0001/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/toranj.ucsd.edu-0001/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+    server {
+    if ($host = tera-trees.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = wlogdate.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = toranj.ucsd.edu) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        server_name toranj.ucsd.edu wlogdate.com tera-trees.com;
+    return 404; # managed by Certbot
+
+
+
+
+
+
+}
